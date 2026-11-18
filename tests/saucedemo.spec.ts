@@ -22,7 +22,7 @@ async function login(page: Page, username: string, password: string) {
 // Хажуугийн цэсийг нээж Logout дарна, нэвтрэх хуудас руу буцсаныг шалгана.
 async function logout(page: Page) {
   await page.getByRole('button', { name: 'Open Menu' }).click();
-  await page.getByRole('link', { name: 'Logout' }).click();
+  await page.getByRole('button', { name: 'Logout' }).click();
   await expect(page).toHaveURL('https://www.saucedemo.com/');
   await expect(page.getByRole('button', { name: 'Login' })).toBeVisible();
 }
@@ -38,9 +38,9 @@ test.describe('Login', () => {
 
   test('wrong password shows an error message', async ({ page }) => {
     await login(page, 'standard_user', 'wrong_password');
-    // Алдааны мессеж h3 гарчиг (heading) хэлбэрээр гардаг — үүрэг ба текстээр нь шалгана.
+    // Алдааны мессежийг хэрэглэгчийн харж буй текстээр нь (getByText) шалгана.
     await expect(
-      page.getByRole('heading', { name: /Username and password do not match/ }),
+      page.getByText(/Username and password do not match/),
     ).toBeVisible();
     // Нэвтрэх хуудсан дээрээ үлдсэн байх ёстой.
     await expect(page).toHaveURL('https://www.saucedemo.com/');
@@ -49,7 +49,7 @@ test.describe('Login', () => {
   test('locked out user cannot log in', async ({ page }) => {
     await login(page, 'locked_out_user', PASSWORD);
     await expect(
-      page.getByRole('heading', { name: /this user has been locked out/ }),
+      page.getByText(/this user has been locked out/),
     ).toBeVisible();
     await expect(page).toHaveURL('https://www.saucedemo.com/');
   });
