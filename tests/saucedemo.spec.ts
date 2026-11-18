@@ -54,3 +54,33 @@ test.describe('Login', () => {
     await expect(page).toHaveURL('https://www.saucedemo.com/');
   });
 });
+
+test.describe('Cart', () => {
+  test('logged-in user can add the backpack to the cart', async ({ page }) => {
+    await login(page, 'standard_user', PASSWORD);
+
+    // Анхдагч эрэмбэ "Name (A to Z)" тул Sauce Labs Backpack жагсаалтын хамгийн эхэнд байна.
+    // Бүх "Add to cart" товч ижил нэртэй тул эхнийхийг нь (first) сонгоно.
+    await expect(
+      page.getByRole('button', { name: 'View details for Sauce Labs Backpack' }).first(),
+    ).toBeVisible();
+    await page.getByRole('button', { name: 'Add to cart' }).first().click();
+
+    // Товч "Remove" болж, сагсны товчны нэр "Cart, 1 items" болно.
+    await expect(page.getByRole('button', { name: 'Remove' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Cart, 1 items' })).toBeVisible();
+
+    // Сагсны хуудас руу орж, яг Backpack сагсанд орсныг шалгана.
+    await page.getByRole('button', { name: 'Cart, 1 items' }).click();
+    await expect(page).toHaveURL(/\/cart\.html$/);
+    await expect(page.getByText('Your Cart')).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: 'View details for Sauce Labs Backpack' }),
+    ).toBeVisible();
+
+    // Төгсгөл: сагсыг хоослоод (Cart, empty) системээс гарна.
+    await page.getByRole('button', { name: 'Remove' }).click();
+    await expect(page.getByRole('button', { name: 'Cart, empty' })).toBeVisible();
+    await logout(page);
+  });
+});
