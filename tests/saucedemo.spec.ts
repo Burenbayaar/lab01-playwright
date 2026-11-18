@@ -1,0 +1,56 @@
+import { test, expect, type Page } from '@playwright/test';
+
+/*
+ * saucedemo.com — нэвтрэх ба сагсны UI тестүүд.
+ * Playwright тест бүрийг ШИНЭ browser context-д ажиллуулдаг тул cookie, session,
+ * localStorage хуваалцахгүй — тестүүд хоорондоо хамааралгүй (test isolation).
+ * baseURL (https://www.saucedemo.com) playwright.config.ts-д тохируулагдсан.
+ */
+
+const PASSWORD = 'secret_sauce';
+
+// Нэвтрэх хуудсыг нээж, нэр, нууц үгийг оруулаад Login товч дарна.
+async function login(page: Page, username: string, password: string) {
+  await page.goto('/');
+  // getByPlaceholder: input-ийг хэрэглэгчийн харж буй placeholder текстээр нь олно.
+  await page.getByPlaceholder('Username').fill(username);
+  await page.getByPlaceholder('Password').fill(password);
+  // getByRole: товчийг ARIA үүрэг (button) ба нэрээр нь олно — XPath/CSS-ээс тогтвортой.
+  await page.getByRole('button', { name: 'Login' }).click();
+}
+
+// Хажуугийн цэсийг нээж Logout дарна, нэвтрэх хуудас руу буцсаныг шалгана.
+async function logout(page: Page) {
+  await page.getByRole('button', { name: 'Open Menu' }).click();
+  await page.getByRole('link', { name: 'Logout' }).click();
+  await expect(page).toHaveURL('https://www.saucedemo.com/');
+  await expect(page.getByRole('button', { name: 'Login' })).toBeVisible();
+}
+
+test.describe('Login', () => {
+  test('successful login shows the Products page', async ({ page }) => {
+    await login(page, 'standard_user', PASSWORD);
+    // Нэвтэрсний дараа бүтээгдэхүүний жагсаалтын хуудас руу шилжсэн байх ёстой.
+    await expect(page).toHaveURL(/\/inventory\.html$/);
+    await expect(page.getByText('Products', { exact: true })).toBeVisible();
+    await logout(page);
+  });
+
+  test('wrong password shows an error message', async ({ page }) => {
+    await login(page, 'standard_user', 'wrong_password');
+    // Алдааны мессеж h3 гарчиг (heading) хэлбэрээр гардаг — үүрэг ба текстээр нь шалгана.
+    await expect(
+      page.getByRole('heading', { name: /Username and password do not match/ }),
+    ).toBeVisible();
+    // Нэвтрэх хуудсан дээрээ үлдсэн байх ёстой.
+    await expect(page).toHaveURL('https://www.saucedemo.com/');
+  });
+
+  test('locked out user cannot log in', async ({ page }) => {
+    await login(page, 'locked_out_user', PASSWORD);
+    await expect(
+      page.getByRole('heading', { name: /this user has been locked out/ }),
+    ).toBeVisible();
+    await expect(page).toHaveURL('https://www.saucedemo.com/');
+  });
+});
